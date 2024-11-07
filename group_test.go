@@ -43,16 +43,12 @@ func TestBatchGroup_Complete(t *testing.T) {
 		require.NoError(t, err)
 		switch c {
 		case 1:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{0, 1, 2}, c)
 		case 2:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{3, 4, 5}, c)
 		case 3:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{6, 7, 8}, c)
 		case 4:
-			require.Len(t, res, 1)
 			require.ElementsMatch(t, res, []int{9}, c)
 		default:
 			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
@@ -61,10 +57,8 @@ func TestBatchGroup_Complete(t *testing.T) {
 	})
 	for i := 0; i < 10; i++ {
 		bg.Go(func() (int, error) {
-			if i == 2 {
-				// Simulate a slow function within a batch to ensure
-				// the callback is called with results from all goroutines
-				// in the current batch.
+			if i == 4 {
+				// Simulate a slow function in a middle of a batch.
 				time.Sleep(time.Millisecond * 100)
 			}
 			return i, nil
@@ -81,10 +75,8 @@ func TestBatchGroup_GoError_Stop(t *testing.T) {
 		t.Logf("callback: %v %v", res, err)
 		switch c {
 		case 1:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{0, 1, 2}, c)
 		case 2:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{3, 4, 5}, c)
 		default:
 			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
@@ -114,19 +106,15 @@ func TestBatchGroup_GoError_Proceed(t *testing.T) {
 		switch c {
 		case 1:
 			require.NoError(t, err)
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{0, 1, 2}, c)
 		case 2:
 			require.Error(t, err)
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{3, 4, 5}, c)
 		case 3:
 			require.NoError(t, err)
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{6, 7, 8}, c)
 		case 4:
 			require.NoError(t, err)
-			require.Len(t, res, 1)
 			require.ElementsMatch(t, res, []int{9}, c)
 		default:
 			t.Fatalf("unexpected callback error at callback#%d: %v %v", c, res, err)
@@ -136,7 +124,7 @@ func TestBatchGroup_GoError_Proceed(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		bg.Go(func() (int, error) {
 			if i == 4 {
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 10)
 				return i, fmt.Errorf("error at %d", i)
 			}
 			return i, nil
@@ -147,28 +135,26 @@ func TestBatchGroup_GoError_Proceed(t *testing.T) {
 }
 
 func TestBatchGroup_CallbackError(t *testing.T) {
-	c := 1
+	c := 0
 	bg := batch.New(3, func(res []int, err error) error {
+		c++
 		t.Logf("callback: %v %v", res, err)
 		require.NoError(t, err)
 		switch c {
 		case 1:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{0, 1, 2}, c)
 		case 2:
-			require.Len(t, res, 3)
 			require.ElementsMatch(t, res, []int{3, 4, 5}, c)
 			return fmt.Errorf("stopping at callback %d", c)
 		default:
 			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
 		}
-		c++
 		return err // Do not swallow the error to stop next batches.
 	})
 	for i := 0; i < 10; i++ {
 		bg.Go(func() (int, error) {
 			if i == 4 {
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 10)
 			}
 			return i, nil
 		})
@@ -187,13 +173,10 @@ func TestBatchGroup_1_at_a_time(t *testing.T) {
 		require.NoError(t, err)
 		switch c {
 		case 1:
-			require.Len(t, res, 1)
 			require.ElementsMatch(t, res, []int{0}, c)
 		case 2:
-			require.Len(t, res, 1)
 			require.ElementsMatch(t, res, []int{1}, c)
 		case 3:
-			require.Len(t, res, 1)
 			require.ElementsMatch(t, res, []int{2}, c)
 		default:
 			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
