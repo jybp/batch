@@ -1,7 +1,7 @@
 // Package `batch` provides a way to run a number of goroutines concurrently.
 // Goroutines are executed in batches, allowing for error handling and result processing after each
 // batch.
-// It has a similar API to [errgroup.Group](https://pkg.go.dev/golang.org/x/sync/errgroup#Group).
+// It has a similar API to https://pkg.go.dev/golang.org/x/sync/errgroup.
 package batch
 
 import (
@@ -56,8 +56,9 @@ func (g *Group[T]) Go(f func() (T, error)) {
 			// Let the caller call Wait and turn Go into a no-op.
 			return
 		} else {
-			// Reset the calls error for the next batch.
+			// Reset the Go error for the next batch.
 			g.err = nil
+			g.errOnce = sync.Once{}
 		}
 	}
 	g.calls++

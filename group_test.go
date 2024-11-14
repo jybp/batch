@@ -119,7 +119,7 @@ func TestBatchGroup_GoError_Proceed(t *testing.T) {
 		default:
 			t.Fatalf("unexpected callback error at callback#%d: %v %v", c, res, err)
 		}
-		return nil // Swallow the error that occured in batch #2 to proceed.
+		return nil // Swallow the errors to proceed to the next batch.
 	})
 	for i := 0; i < 10; i++ {
 		bg.Go(func() (int, error) {
@@ -143,13 +143,14 @@ func TestBatchGroup_CallbackError(t *testing.T) {
 		switch c {
 		case 1:
 			require.ElementsMatch(t, res, []int{0, 1, 2}, c)
+			return nil
 		case 2:
 			require.ElementsMatch(t, res, []int{3, 4, 5}, c)
 			return fmt.Errorf("stopping at callback %d", c)
 		default:
 			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
+			return fmt.Errorf("unexpected callback call #%d: %v %v", c, res, err)
 		}
-		return err // Do not swallow the error to stop next batches.
 	})
 	for i := 0; i < 10; i++ {
 		bg.Go(func() (int, error) {
@@ -191,4 +192,36 @@ func TestBatchGroup_1_at_a_time(t *testing.T) {
 	}
 	require.NoError(t, bg.Wait())
 	require.Equal(t, 3, c)
+}
+
+func TestBatchGroup_several_errors(t *testing.T) {
+	c := 0
+	bg := batch.New(2, func(res []int, err error) error {
+		c++
+		t.Logf("callback: %v %v", res, err)
+		switch c {
+		case 1:
+			require.Error(t, err)
+			require.ElementsMatch(t, res, []int{0, 1}, c)
+			return nil // Swallow the error to proceed to batch #2.
+		case 2:
+			require.Error(t, err)
+			require.ElementsMatch(t, res, []int{2, 3}, c)
+			return err // Do not swallow the error to stop.
+		default:
+			t.Fatalf("unexpected callback call #%d: %v %v", c, res, err)
+		}
+		return nil
+	})
+	for i := 0; i < 5; i++ {
+		bg.Go(func() (int, error) {
+			if i == 0 || i == 2 {
+				// error for first and second batch.
+				return i, fmt.Errorf("error at %d", i)
+			}
+			return i, nil
+		})
+	}
+	require.Error(t, bg.Wait())
+	require.Equal(t, 2, c)
 }
