@@ -16,20 +16,14 @@ import (
 )
 
 func main() {
-		// Create a new batch with a maximum of 10 goroutines and a callback function.
-	bg := batch.New(10, func(results []int, err error) error {
-		if err != nil {
-			// One of the goroutines in the batch returned an error.
-			// Use or discard the partial results.
-			fmt.Printf("%v %v\n", results, err)
-			return err // Return an error to stop processing.
-		}
+	// Create a new batch with a maximum of 10 goroutines and a callback function.
+	bg := batch.New(10, func(results []int) error {
 		fmt.Printf("%v\n", results)
 		return nil // No error to proceed.
 	})
 
 	for i := 0; i < 101; i++ {
-        // Some slow tasks that will run concurrently.
+		// Some slow tasks that will run concurrently.
 		bg.Go(func() (int, error) {
 			time.Sleep(time.Second)
 			if i == 23 {
