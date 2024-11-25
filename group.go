@@ -39,21 +39,16 @@ func New[T any](limit int, cb func(v []T) error) Group[T] {
 // and calls the callback function if no errors occured.
 // Go becomes a no-op if an error occured.
 func (g *Group[T]) Go(f func() (T, error)) {
-	if g.err != nil {
-		// An error occured in the previous batch.
-		// Turn Go into a no-op and let the caller call Wait.
-		return
-	}
 	if g.calls > 0 && g.calls%uint64(cap(g.res)) == 0 {
 		g.wg.Wait()
+		if g.err != nil {
+			// An error occured in the previous batch.
+			// Turn Go into a no-op and let the caller call Wait.
+			return
+		}
 		res := []T{}
 		for len(g.res) > 0 {
 			res = append(res, <-g.res) // Drain the channel.
-		}
-		if g.err != nil {
-			// An error occured in the current batch.
-			// Turn Go into a no-op and let the caller call Wait.
-			return
 		}
 		if g.err = g.cb(res); g.err != nil {
 			// An error occured in the callback.
