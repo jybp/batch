@@ -1,4 +1,4 @@
-// Package `batch` provides a way to run a number of goroutines concurrently.
+// Package `batch` provides a way to run a fixed number of goroutines concurrently.
 // Goroutines are executed in batches allowing for result processing after each
 // batch.
 // It has a similar API to https://pkg.go.dev/golang.org/x/sync/errgroup.
