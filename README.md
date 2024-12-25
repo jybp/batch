@@ -1,7 +1,7 @@
 # Batch 
 
-Package `batch` provides a way to run a fixed number of goroutines concurrently. Goroutines are executed in batches, allowing for error handling and result processing after each batch.
-It has a similar API to [errgroup.Group](https://pkg.go.dev/golang.org/x/sync/errgroup#Group).
+Package `batch` provides a way to run a fixed number of goroutines concurrently. Goroutines are executed in batches, allowing for error handling and result processing after each batch.  
+It has a similar API to [errgroup.Group](https://pkg.go.dev/golang.org/x/sync/errgroup#Group). The difference with [SetLimit](https://pkg.go.dev/golang.org/x/sync/errgroup#Group.SetLimit) is that `Go` will block until all goroutines of the previous batch are finished, while `errgroup` will always schedule a new goroutine when a slot available.
 
 # Usage 
 
