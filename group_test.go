@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jybp/batch"
+	"github.com/jybp/batch/v2"
 
 	"github.com/stretchr/testify/require"
 )

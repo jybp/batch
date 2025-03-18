@@ -1,4 +1,4 @@
-module github.com/jybp/batch
+module github.com/jybp/batch/v2
 
 go 1.23.2
 
