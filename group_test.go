@@ -16,9 +16,9 @@ func ExampleGroup() {
 		return nil       // Proceed to the next batch.
 	})
 	for i := 0; i < 10; i++ {
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			time.Sleep(time.Millisecond * 10 * time.Duration(i)) // To force consistent output.
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	if err := bg.Wait(); err != nil {
@@ -52,12 +52,12 @@ func TestBatchGroup_Complete(t *testing.T) {
 		return nil
 	})
 	for i := 0; i < 10; i++ {
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			if i == 4 {
 				// Simulate a slow function in a middle of a batch.
 				time.Sleep(time.Millisecond * 100)
 			}
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	require.NoError(t, bg.Wait())
@@ -82,11 +82,11 @@ func TestBatchGroup_CallbackError(t *testing.T) {
 		}
 	})
 	for i := 0; i < 10; i++ {
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			if i == 4 {
 				time.Sleep(time.Millisecond * 10)
 			}
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	err := bg.Wait()
@@ -114,9 +114,9 @@ func TestBatchGroup_1_at_a_time(t *testing.T) {
 		return nil
 	})
 	for i := 0; i < 3; i++ {
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			time.Sleep(time.Millisecond * 10 * time.Duration(i))
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	require.NoError(t, bg.Wait())
@@ -131,18 +131,83 @@ func TestBatchGroup_several_errors(t *testing.T) {
 		return fmt.Errorf("unexpected callback call #%d: %v", c, res)
 	})
 	for i := 0; i < 5; i++ {
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			// To force ordered errors.
 			time.Sleep(time.Millisecond * 10 * time.Duration(i))
 			if i == 0 || i == 2 {
 				// error for 1st and 3rd Go.
-				return i, fmt.Errorf("error at %d", i)
+				return []int{i}, fmt.Errorf("error at %d", i)
 			}
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	err := bg.Wait()
 	require.Error(t, err)
 	require.Equal(t, "error at 0", err.Error())
 	require.Equal(t, 0, c)
+}
+
+func TestBatchGroup_Slice_Complete(t *testing.T) {
+	c := 0
+	bg := batch.New(3, func(res []int) error {
+		c++
+		t.Logf("callback %d: %v", c, res)
+		switch c {
+		case 1:
+			require.ElementsMatch(t, res, []int{0, 100, 1, 101, 2, 102}, c)
+		case 2:
+			require.ElementsMatch(t, res, []int{3, 103, 4, 104, 5, 105}, c)
+		case 3:
+			require.ElementsMatch(t, res, []int{6, 106, 7, 107, 8, 108}, c)
+		case 4:
+			require.ElementsMatch(t, res, []int{9, 109}, c)
+		default:
+			t.Fatalf("unexpected callback call #%d: %v", c, res)
+		}
+		return nil
+	})
+	for i := 0; i < 10; i++ {
+		bg.Go(func() ([]int, error) {
+			if i == 4 {
+				// Simulate a slow function in a middle of a batch.
+				time.Sleep(time.Millisecond * 100)
+			}
+			return []int{i, i + 100}, nil
+		})
+	}
+	require.NoError(t, bg.Wait())
+	require.Equal(t, 4, c)
+}
+
+func TestBatchGroup_Slice_Nil(t *testing.T) {
+	c := 0
+	bg := batch.New(3, func(res []int) error {
+		c++
+		t.Logf("callback %d: %v", c, res)
+		switch c {
+		case 1:
+			require.ElementsMatch(t, res, []int{0, 100, 1, 101, 2, 102}, c)
+		case 2:
+			require.ElementsMatch(t, res, []int{3, 103, 5, 105}, c)
+		case 3:
+			require.ElementsMatch(t, res, []int{6, 106, 7, 107, 8, 108}, c)
+		case 4:
+			require.ElementsMatch(t, res, []int{9, 109}, c)
+		default:
+			t.Fatalf("unexpected callback call #%d: %v", c, res)
+		}
+		return nil
+	})
+	for i := 0; i < 10; i++ {
+		bg.Go(func() ([]int, error) {
+			if i == 4 {
+				// Simulate a slow function in a middle of a batch.
+				time.Sleep(time.Millisecond * 100)
+				return nil, nil
+			}
+			return []int{i, i + 100}, nil
+		})
+	}
+	require.NoError(t, bg.Wait())
+	require.Equal(t, 4, c)
 }

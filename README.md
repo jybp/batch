@@ -24,12 +24,12 @@ func main() {
 
 	for i := 0; i < 101; i++ {
 		// Some slow tasks that will run concurrently.
-		bg.Go(func() (int, error) {
+		bg.Go(func() ([]int, error) {
 			time.Sleep(time.Second)
 			if i == 23 {
-				// return -1, fmt.Errorf("error at %d", i)
+				// return nil, fmt.Errorf("error at %d", i)
 			}
-			return i, nil
+			return []int{i}, nil
 		})
 	}
 	if err := bg.Wait(); err != nil {
