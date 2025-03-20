@@ -64,6 +64,28 @@ func TestBatchGroup_Complete(t *testing.T) {
 	require.Equal(t, 4, c)
 }
 
+func TestBatchGroup_Limit_Higher_Than_Go(t *testing.T) {
+	c := 0
+	bg := batch.New(4, func(res []int) error {
+		c++
+		t.Logf("callback %d: %v", c, res)
+		switch c {
+		case 1:
+			require.ElementsMatch(t, res, []int{0, 1}, c)
+		default:
+			t.Fatalf("unexpected callback call #%d: %v", c, res)
+		}
+		return nil
+	})
+	for i := 0; i < 2; i++ {
+		bg.Go(func() ([]int, error) {
+			return []int{i}, nil
+		})
+	}
+	require.NoError(t, bg.Wait())
+	require.Equal(t, 1, c)
+}
+
 func TestBatchGroup_CallbackError(t *testing.T) {
 	c := 0
 	bg := batch.New(3, func(res []int) error {
