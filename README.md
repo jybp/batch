@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jybp/batch"
+	"github.com/jybp/batch/v2"
 )
 
 func main() {
