@@ -233,3 +233,25 @@ func TestBatchGroup_Slice_Nil(t *testing.T) {
 	require.NoError(t, bg.Wait())
 	require.Equal(t, 4, c)
 }
+
+func TestBatchGroup_Less_Go_Than_Limit(t *testing.T) {
+	c := 0
+	bg := batch.New(10, func(res []int) error {
+		c++
+		t.Logf("callback %d: %v", c, res)
+		switch c {
+		case 1:
+			require.ElementsMatch(t, res, []int{0, 100, 1, 101}, c)
+		default:
+			t.Fatalf("unexpected callback call #%d: %v", c, res)
+		}
+		return nil
+	})
+	for i := 0; i < 2; i++ {
+		bg.Go(func() ([]int, error) {
+			return []int{i, i + 100}, nil
+		})
+	}
+	require.NoError(t, bg.Wait())
+	require.Equal(t, 1, c)
+}
